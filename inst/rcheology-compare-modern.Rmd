@@ -1,0 +1,78 @@
+---
+title: "rcheology Comparison New Packages"
+author: "Jeff Allen"
+date: "8/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Compare new packages using rcheology technique
+
+Let's see if the poor performance on base packages is still true for modern CRAN packages when using source inspection techniques.
+
+```{r}
+source("rchology-list.R")
+library(dplyr)
+
+# Make sure that all of these packages have just been isntalled from CRAN -- not dev versions.
+shiny_rc <- makeData("shiny") %>% filter(exported == TRUE) %>% pull(name) %>% as.character()
+ggplot2_rc <- makeData("ggplot2") %>% filter(exported == TRUE) %>% pull(name) %>% as.character()
+plumber_rc <- makeData("plumber") %>% filter(exported == TRUE) %>% pull(name) %>% as.character()
+
+# Make sure these sources are pulled in for the most recent version from CRAN so we're analyzing the same packages.
+source("analyzePkg.R")
+shiny_rd <- analyzePkg("shiny", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+ggplot2_rd <- analyzePkg("ggplot2", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+plumber_rd <- analyzePkg("plumber", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+
+summarizeDiff <- function(rc, rd){
+  onlyRC <- setdiff(rc, rd)
+  onlyRD <- setdiff(rd, rc)
+
+  cat(length(onlyRC), " objects only in rc", "\n")
+  print(head(onlyRC))
+  
+  cat(length(onlyRD), " objects only in rd", "\n")
+  print(head(onlyRD))
+  
+  inter <- intersect(rc, rd)
+  
+  cat(round(length(inter) / length(rc) * 100), "% (",length(inter), "/", length(rc),") of rc was also covered in rd\n")
+  cat(round(length(onlyRD) / length(rd) * 100), "% (",length(onlyRD), "/", length(rd),") of rd was not found in rc\n")
+}
+```
+
+### Shiny
+
+```{r}
+summarizeDiff(shiny_rc, shiny_rd)
+```
+
+Interestingly, the RD analysis is actually better on some functions here. `pre`, for example, is indeed exported from Shiny. It's dynamically generated in the source. But it's there.
+
+```{r}
+shiny::pre("hi")
+```
+
+However it doesn't show up in the namespace
+
+```{r}
+"pre" %in% ls(getNamespace("shiny"))
+```
+
+### ggplot2
+
+```{r}
+summarizeDiff(ggplot2_rc, ggplot2_rd)
+```
+
+### Plumber
+
+```{r}
+summarizeDiff(plumber_rc, plumber_rd)
+```
+
+It looks like many of these are classes (at least some are R6). They don't exist in the top-level docs sometimes, but they are exported. It appears that many have aliases that would at least point out their existence. They are dynamically generated, so simple parsing of the sources would not point out the signature here. They do mostly appear in `NAMESPACE`. So there are ways to infer their existence in a source package, but it will be much harder to infer their signature.

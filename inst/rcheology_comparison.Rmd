@@ -19,13 +19,43 @@ head(r352_rd)
 funs_rd <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% pull(pf) %>% unique
 length(funs_rd)
 
-
-
 r352_rc <- rcheology::rcheology %>% filter(Rversion == "3.5.2")
 head(r352_rc)
 funs_rc <- r352_rc %>% mutate(pf=paste(package, name, sep="::")) %>% pull(pf)
 length(funs_rc)
 
+# Functions that appear rd that are missing in rc
 setdiff(funs_rd, funs_rc)
-setdiff(funs_rc, funs_rd)
 ```
+
+Many of the extra functions appear in `defunct` Rd files. It may be possible to use heuristics to strip those out. It may be that by parsing the `NAMESPACE` file of a package we'd be able to catch that some of these aren't exported.
+
+```{r}
+# Functions that are in rc that are missing from rd
+length(setdiff(funs_rc, funs_rd))
+head(setdiff(funs_rc, funs_rd), n=100)
+```
+
+These are functions that don't have usage examples associated with them. In some cases, there are listed aliases (e.g. `utils::de.ncols`) in the help file that point out their existence. But we have no idea what the signature of such functions is.
+
+In some cases, these functions that are only in rc do actually exist in rd they just have a class. We can append the class to see if that helps.
+
+```{r}
+funs_rd_class <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% filter(!is.na(class)) %>% mutate(pfc = paste(pf, class, sep=".")) %>% pull(pfc) %>% unique
+funs_rd_all <- c(funs_rd, funs_rd_class)
+length(funs_rd_all)
+length(setdiff(funs_rc, funs_rd_all))
+head(setdiff(funs_rc, funs_rd_all), n=100)
+```
+
+That accounted for `r length(setdiff(funs_rc, funs_rd)) - length(setdiff(funs_rc, funs_rd_all))` of the missing functions, but `r length(setdiff(funs_rc, funs_rd_all))` still remain.
+
+Of the `r length(funs_rc)` objects in rcheology, we can account for `r length(intersect(funs_rc, funs_rd_all))`, or `r round(length(intersect(funs_rc, funs_rd_all)) / length(funs_rc)*100)`%. And we still appear to include `r length(setdiff(funs_rd, funs_rc))` functions that are defunct or not exported in our dataset -- meaning that up to `r round(length(setdiff(funs_rd, funs_rc))/length(funs_rc)*100)`% of our dataset is bad data. It appears that some of these are legitimate-ish. i.e. `base::FALSE` is a real thing, although it's not an object in the traditional sense. Knowing that it exists and is available in a particular version may still be informative and legitimate.
+
+
+Ideas to improve:
+
+ - Filter by `NAMESPACE` exports to reduce the number of unexported examples in rd.
+ - Use `alias` to at least discover the existence of functions/objects, even if we don't know their signature.
+ - Parse the package sources for evidence of an exported function referenced in `NAMESPACE` and deduce its signature. This won't always work -- some objects are dynamically generated and require running the code. But it might work for the obvious cases? Not clear if we would be able to avoid creating false positives, though.
+
