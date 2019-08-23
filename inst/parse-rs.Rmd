@@ -41,6 +41,9 @@ get_versions <- function(){
 versions <- get_versions()
 #versions <- c("3.5.0", "3.6.1")
 
+# Magic separator for class methods
+classSep <- "__CLASS__"
+
 parsed_rd <- lapply(versions, function(ver){
   cat(ver, "\n")
   srcURL <- get_url(ver)
@@ -87,11 +90,11 @@ parsed_rd <- lapply(versions, function(ver){
       # attr(,"Rd_tag")
       # [1] "TEXT"
       # We want to filter out these second elements when we see this.
-      
       usage[[1]] <- lapply(usage[[1]], function(u){
         if (identical(attr(u, "Rd_tag"), "\\method")) {
-          # Combine the two elements into one with a more recognizable syntax
-          return(paste(as.character(unlist(u)), collapse="."))
+          # Combine the two elements into one using a magic string to help us later
+          # identify that this is a special function.
+          return(paste(as.character(unlist(u)), collapse=classSep))
         }
         u
       })
@@ -116,17 +119,26 @@ parsed_rd <- lapply(versions, function(ver){
       lapply(par, function(pa){
         # NULL is documented (see ?NULL) which really throws everything off. Treat this as a special case
         if (is.null(pa)){
-          return(data.frame(ver=ver, pkg=pkg, file=rd, fun="NULL", paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+          return(data.frame(ver=ver, pkg=pkg, file=rd, fun="NULL", class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
         }
         
         if (is.symbol(pa)){
           # Example may just be an unevaluated call.
           # we'll just represent this with evaluated=FALSE
-          return(data.frame(ver=ver, pkg=pkg, file=rd, fun=as.character(pa), paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+          return(data.frame(ver=ver, pkg=pkg, file=rd, fun=as.character(pa), class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
         }
         
-        # Function name comes first
         fname <- as.character(pa[[1]])
+        class <- NA_character_
+        if (grepl(classSep, fname)){
+          re <- paste0("^(.*)", classSep, "(.*)$")
+          mat <- stringr::str_match(fname, re)
+          
+          if (nrow(mat) > 0){
+            fname <- mat[1,2]
+            class <- mat[1,3]
+          }
+        }
         
         # Only explore if there are actually arguments.
         placeholders <- NA_character_
@@ -134,12 +146,22 @@ parsed_rd <- lapply(versions, function(ver){
         if (length(pa) > 1){
           placeholders <- as.character(pa[2:length(pa)])
           pnames <- names(pa)[2:length(pa)]
+          
+          # If no names, then the stated characters are the names of the parameters.
           if (is.null(pnames)){
-            pnames <- rep(NA_character_, times = length(pa)-1)
+            pnames <- placeholders
+            placeholders <- rep(NA_character_, times = length(pa)-1)
           }
+          
+          # Where unnamed, we have no placeholder and the given text is the pname
+          noplace <- pnames == ""
+          pnames[noplace] <- placeholders[noplace]
+          placeholders[noplace] <- NA_character_
         }
         
-        data.frame(ver=ver, pkg=pkg, file=rd, fun=fname, paramName=pnames, placeholder=placeholders, evaluated=TRUE, stringsAsFactors = FALSE)
+        # TODO: see R 3.5.2's utils::relist.Rd for an example of a documented, unexported function: unlist.relistable
+        
+        data.frame(ver=ver, pkg=pkg, file=rd, fun=fname, class=class, paramName=pnames, placeholder=placeholders, evaluated=TRUE, stringsAsFactors = FALSE)
       }) %>% bind_rows()
     }) %>% bind_rows()
   }) %>% bind_rows()
