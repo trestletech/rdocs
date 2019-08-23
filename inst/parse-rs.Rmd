@@ -1,0 +1,190 @@
+---
+title: "Parse Rs"
+author: "Jeff Allen"
+date: "8/19/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+get_url <- function(version){
+  if (!grepl("^3\\.", version)){
+    stop("Non-3.x versions aren't yet supported")
+  }
+  paste0("https://cran.r-project.org/src/base/R-3/R-", version, ".tar.gz")
+}
+```
+
+
+## Analyze R Source
+
+```{r, cache=TRUE}
+
+library(dplyr)
+  
+get_versions <- function(){
+  library(rvest)
+  verhtml <- read_html("https://cran.r-project.org/src/base/R-3/") 
+  
+  hrefs <- verhtml %>% 
+    html_nodes("a") %>% 
+    html_attr("href")
+  
+  verPattern <- "^R-([\\d\\.]+)\\.tar\\.gz$"
+  hrefs <- hrefs[grepl(verPattern, hrefs, perl=TRUE)]
+  
+  gsub(verPattern, "\\1", hrefs, perl=TRUE)
+}
+versions <- get_versions()
+#versions <- c("3.5.0", "3.6.1")
+
+parsed_rd <- lapply(versions, function(ver){
+  cat(ver, "\n")
+  srcURL <- get_url(ver)
+  dir <- tempdir()
+  srcFile <- file.path(dir, "source.tar.gz")
+  download.file(srcURL, destfile = srcFile)
+  untar(srcFile, exdir=dir)
+  rsrc <- list.files(dir, "^R-*", full.names = TRUE)
+  rlib <- file.path(rsrc, "src", "library")
+  rpkgs <- list.dirs(rlib, full.names=FALSE, recursive=FALSE)
+  
+  # rpkgs <- rpkgs[1:2]
+  
+  pg <- NULL
+  df <- lapply(rpkgs, function(pkg){
+    cat("\t", pkg, "\n")
+    rds <- list.files(file.path(rlib, pkg, "man"))
+    lapply(rds, function(rd){
+      #cat("\t\t", rd, "\n")
+      rd_path <- file.path(rlib, pkg, "man", rd)
+      p <- tools::parse_Rd(rd_path)
+      pg <<- p
+      usage <- p[sapply(p, function(x){attr(x, "Rd_tag") == "\\usage"})]
+      if (length(usage) == 0){
+        return()
+      }
+      
+      # Replace \\dots with ...
+      idx <- vapply(usage[[1]], function(x){ attr(x, "Rd_tag") == "\\dots"}, logical(1))
+      usage[[1]][idx] <- "..."
+      
+      # The class of S3 methods appears as the second element in the list. i.e. in relist.Rd 3.5.2:
+      # [[3]]
+      # [[3]][[1]]
+      # [[3]][[1]][[1]]
+      # [1] "relist"
+      # attr(,"Rd_tag")
+      # [1] "TEXT"
+      # 
+      # 
+      # [[3]][[2]]
+      # [[3]][[2]][[1]]
+      # [1] "default"
+      # attr(,"Rd_tag")
+      # [1] "TEXT"
+      # We want to filter out these second elements when we see this.
+      
+      usage[[1]] <- lapply(usage[[1]], function(u){
+        if (identical(attr(u, "Rd_tag"), "\\method")) {
+          # Combine the two elements into one with a more recognizable syntax
+          return(paste(as.character(unlist(u)), collapse="."))
+        }
+        u
+      })
+      
+      str <- unlist(usage[[1]])
+      
+      #idx <- vapply(usage[[1]], function(x){ length(x) >= 1 && x != "\n"}, logical(1))
+      #str <- unlist(usage[[1]][idx])
+      
+      # filter out comments (e.g. in base::base-internal.Rd)
+      str <- str[!grepl("^%.*", str, perl = TRUE)]
+      
+      fil <- tempfile(fileext = ".Rdmped")
+      cat(paste(str, collapse=""), file = fil)
+      # TODO: you can recover from partially parsed files. See ?parse
+      par <- tryCatch({parse(fil=fil)}, error=function(x){
+        warning(pkg, "::", rd, ": ", x)
+        NULL
+      })
+      unlink(fil)
+      
+      lapply(par, function(pa){
+        # NULL is documented (see ?NULL) which really throws everything off. Treat this as a special case
+        if (is.null(pa)){
+          return(data.frame(ver=ver, pkg=pkg, file=rd, fun="NULL", paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+        }
+        
+        if (is.symbol(pa)){
+          # Example may just be an unevaluated call.
+          # we'll just represent this with evaluated=FALSE
+          return(data.frame(ver=ver, pkg=pkg, file=rd, fun=as.character(pa), paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+        }
+        
+        # Function name comes first
+        fname <- as.character(pa[[1]])
+        
+        # Only explore if there are actually arguments.
+        placeholders <- NA_character_
+        pnames <- NA_character_
+        if (length(pa) > 1){
+          placeholders <- as.character(pa[2:length(pa)])
+          pnames <- names(pa)[2:length(pa)]
+          if (is.null(pnames)){
+            pnames <- rep(NA_character_, times = length(pa)-1)
+          }
+        }
+        
+        data.frame(ver=ver, pkg=pkg, file=rd, fun=fname, paramName=pnames, placeholder=placeholders, evaluated=TRUE, stringsAsFactors = FALSE)
+      }) %>% bind_rows()
+    }) %>% bind_rows()
+  }) %>% bind_rows()
+
+  unlink(srcFile)
+  unlink(rsrc, recursive=TRUE)
+  
+  df
+}) %>% bind_rows()
+
+saveRDS(parsed_rd, "parsed_rd.rds")
+
+# # For installed packages
+# s <- asNamespace("shiny")
+# ne <- get(".__NAMESPACE__.", envir=s, inherits=FALSE)
+# ls(ne)
+# allExports <- ls(get("exports", ne))
+
+# NAMESPACE file isn't updated for installed packages.
+# Meta/nsInfo.rds is a slightly summarized version. It's at least parsed, but still doesn't play out the patterns.
+#Meta/Rd.rds$aliases seems to have some info. But it's mostly related to doc layout organization.
+
+#lazyLoad() can be pointed at a R/ directory of an installed package and it loads the package. Not really much different from library()ing it.
+```
+
+
+```{r}
+library(dplyr)
+parsed_rd %>% group_by(ver, pkg, fun, evaluated) %>% summarize(args=sum(!is.na(paramName) || !is.na(placeholder)))
+
+library(ggplot2)
+parsed_rd %>% group_by(ver) %>% tally() %>% ungroup() %>% ggplot(aes(ver, n)) + geom_line(aes(group=1)) + geom_point() + ylab("Number of function parameters") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+parsed_rd %>% group_by(ver, pkg, fun) %>% summarize() %>% group_by(ver) %>% tally() %>% 
+  ggplot(aes(ver, n)) + geom_line(aes(group=1)) + geom_point() + ylab("Number of Functions") + theme(axis.text.x = element_text(angle = 60, hjust = 1))
+
+funs <- parsed_rd %>% group_by(ver, pkg, fun) %>% summarize()
+
+# Finding differences between versions
+setdiff(funs %>% filter(ver=="3.0.0") %>% ungroup() %>% select(pkg, fun), funs %>% filter(ver=="3.2.0") %>% ungroup() %>% select(pkg, fun))
+
+# Example of an object that got removed
+funs %>% group_by(ver) %>% summarize(exists=case_when(any(pkg=="grDevices" & fun=="postscriptFont") ~ TRUE, TRUE ~ FALSE)) %>% as.data.frame()
+
+setdiff(funs %>% filter(ver=="3.2.0") %>% ungroup() %>% select(pkg, fun), funs %>% filter(ver=="3.0.0") %>% ungroup() %>% select(pkg, fun))
+
+funs %>% group_by(ver) %>% summarize(exists=case_when(any(pkg=="base" & fun=="anyNA") ~ TRUE, TRUE ~ FALSE)) %>% as.data.frame()
+```

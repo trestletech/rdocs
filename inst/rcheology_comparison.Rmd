@@ -1,0 +1,31 @@
+---
+title: "rcheology Comparison"
+author: "Jeff Allen"
+date: "8/23/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Compare to rcheology
+
+```{r}
+library(dplyr)
+rd <- readRDS("parsed_rd.rds")
+r352_rd <- rd %>% filter(ver == "3.5.2")
+head(r352_rd)
+funs_rd <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% pull(pf) %>% unique
+length(funs_rd)
+
+
+
+r352_rc <- rcheology::rcheology %>% filter(Rversion == "3.5.2")
+head(r352_rc)
+funs_rc <- r352_rc %>% mutate(pf=paste(package, name, sep="::")) %>% pull(pf)
+length(funs_rc)
+
+setdiff(funs_rd, funs_rc)
+setdiff(funs_rc, funs_rd)
+```
