@@ -11,7 +11,12 @@ analyzePkg <- function(pkg, rlib, ver){
     p <- tools::parse_Rd(rd_path)
     pg <<- p
 
+    aliases <- p[sapply(p, function(x){attr(x, "Rd_tag") == "\\alias"})]
+    aliasNames <- vapply(aliases, as.character, character(1))
+
     # TODO: some exported functions aren't documented in usage. See `utils::de.ncols`
+    # TODO: some classes aren't getting pulled out properly. e.g. utils::printBibtex should be
+    #       `print` (class Bibtex)
 
     usage <- p[sapply(p, function(x){attr(x, "Rd_tag") == "\\usage"})]
     if (length(usage) == 0){
@@ -63,16 +68,22 @@ analyzePkg <- function(pkg, rlib, ver){
     })
     unlink(fil)
 
-    lapply(par, function(pa){
+    defunct <- FALSE
+    # TODO: is this regex robust?
+    if (grepl("-defunct\\W", rd, perl=TRUE)){
+      defunct <- TRUE
+    }
+
+    usages <- lapply(par, function(pa){
       # NULL is documented (see ?NULL) which really throws everything off. Treat this as a special case
       if (is.null(pa)){
-        return(data.frame(ver=ver, pkg=pkg, file=rd, fun="NULL", class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+        return(data.frame(ver=ver, pkg=pkg, file=rd, fun="NULL", class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, defunct=defunct, stringsAsFactors = FALSE))
       }
 
       if (is.symbol(pa)){
         # Example may just be an unevaluated call.
         # we'll just represent this with evaluated=FALSE
-        return(data.frame(ver=ver, pkg=pkg, file=rd, fun=as.character(pa), class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, stringsAsFactors = FALSE))
+        return(data.frame(ver=ver, pkg=pkg, file=rd, fun=as.character(pa), class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=FALSE, defunct=defunct, stringsAsFactors = FALSE))
       }
 
       fname <- as.character(pa[[1]])
@@ -108,7 +119,12 @@ analyzePkg <- function(pkg, rlib, ver){
 
       # TODO: see R 3.5.2's utils::relist.Rd for an example of a documented, unexported function: unlist.relistable
 
-      data.frame(ver=ver, pkg=pkg, file=rd, fun=fname, class=class, paramName=pnames, placeholder=placeholders, evaluated=TRUE, stringsAsFactors = FALSE)
+      data.frame(ver=ver, pkg=pkg, file=rd, fun=fname, class=class, paramName=pnames, placeholder=placeholders, evaluated=TRUE, defunct=defunct, stringsAsFactors = FALSE)
     }) %>% bind_rows()
+
+    # combine usages and aliasNames
+    aliasDF <- data.frame(ver=ver, pkg=pkg, file=rd, fun=aliasNames, class=NA_character_, paramName=NA_character_, placeholder=NA_character_, evaluated=NA, defunct=defunct, stringsAsFactors = FALSE)
+    aliasDF <- aliasDF %>% filter(! fun %in% usages$fun)
+    bind_rows(usages, aliasDF)
   }) %>% bind_rows()
 }

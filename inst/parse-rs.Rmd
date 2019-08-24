@@ -38,8 +38,7 @@ get_versions <- function(){
   gsub(verPattern, "\\1", hrefs, perl=TRUE)
 }
 versions <- get_versions()
-#versions <- c("3.5.0", "3.6.1")
-
+#versions <- c("3.5.2")
 
 source("analyzePkg.R")
 
@@ -47,8 +46,10 @@ parsed_rd <- lapply(versions, function(ver){
   cat(ver, "\n")
   srcURL <- get_url(ver)
   dir <- tempdir()
-  srcFile <- file.path(dir, "source.tar.gz")
-  download.file(srcURL, destfile = srcFile)
+  srcFile <- file.path(dir, paste0(ver, "-source.tar.gz"))
+  if (!file.exists(srcFile)){
+    download.file(srcURL, destfile = srcFile)
+  }
   untar(srcFile, exdir=dir)
   rsrc <- list.files(dir, "^R-*", full.names = TRUE)
   rlib <- file.path(rsrc, "src", "library")
@@ -59,7 +60,6 @@ parsed_rd <- lapply(versions, function(ver){
   pg <- NULL
   df <- lapply(rpkgs, analyzePkg, rlib, ver) %>% bind_rows()
 
-  unlink(srcFile)
   unlink(rsrc, recursive=TRUE)
   
   df

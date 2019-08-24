@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(dplyr)
 rd <- readRDS("parsed_rd.rds")
-r352_rd <- rd %>% filter(ver == "3.5.2")
+r352_rd <- rd %>% filter(ver == "3.5.2", defunct==FALSE)
 head(r352_rd)
 funs_rd <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% pull(pf) %>% unique
 length(funs_rd)
@@ -28,7 +28,7 @@ length(funs_rc)
 setdiff(funs_rd, funs_rc)
 ```
 
-Many of the extra functions appear in `defunct` Rd files. It may be possible to use heuristics to strip those out. It may be that by parsing the `NAMESPACE` file of a package we'd be able to catch that some of these aren't exported.
+It may be that by parsing the `NAMESPACE` file of a package we'd be able to catch that some of these aren't exported.
 
 ```{r}
 # Functions that are in rc that are missing from rd
@@ -56,6 +56,6 @@ Of the `r length(funs_rc)` objects in rcheology, we can account for `r length(in
 Ideas to improve:
 
  - Filter by `NAMESPACE` exports to reduce the number of unexported examples in rd.
- - Use `alias` to at least discover the existence of functions/objects, even if we don't know their signature.
+ - Use `alias` and or `NAMESPACE` to at least discover the existence of functions/objects, even if we don't know their signature.
  - Parse the package sources for evidence of an exported function referenced in `NAMESPACE` and deduce its signature. This won't always work -- some objects are dynamically generated and require running the code. But it might work for the obvious cases? Not clear if we would be able to avoid creating false positives, though.
 
