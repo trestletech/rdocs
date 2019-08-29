@@ -140,6 +140,10 @@ analyzePkg <- function(pkg, rlib, ver){
 # Supplements a data.frame with information about whether or not each object is exported
 addExported <- function(objs, ns){
   # First, the simple exports
+  if (!"fun" %in% colnames(objs)){
+    # Sometimes we see a 0x0 data.frame. That may be a bug?
+    return(objs)
+  }
   objs <- objs %>% mutate(exported = is.na(class) & fun %in% ns$exports)
 
   # Now the patterns

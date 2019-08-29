@@ -43,7 +43,7 @@ versions <- get_versions()
 source("analyzePkg.R")
 
 parsed_rd <- lapply(versions, function(ver){
-  cat(ver, "\n")
+  message(ver, "\n")
   srcURL <- get_url(ver)
   dir <- tempdir()
   srcFile <- file.path(dir, paste0(ver, "-source.tar.gz"))
