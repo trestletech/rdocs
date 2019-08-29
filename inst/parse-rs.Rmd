@@ -47,9 +47,11 @@ parsed_rd <- lapply(versions, function(ver){
   srcURL <- get_url(ver)
   dir <- tempdir()
   srcFile <- file.path(dir, paste0(ver, "-source.tar.gz"))
-  if (!file.exists(srcFile)){
-    download.file(srcURL, destfile = srcFile)
+  cachedPath <- file.path("~/Downloads/r-cache/", paste0(ver, "-source.tar.gz"))
+  if (!file.exists(cachedPath)) {
+    download.file(srcURL, destfile = cachedPath)
   }
+  file.copy(cachedPath, srcFile)
   untar(srcFile, exdir=dir)
   rsrc <- list.files(dir, "^R-*", full.names = TRUE)
   rlib <- file.path(rsrc, "src", "library")

@@ -399,17 +399,23 @@ shiny_rc &lt;- makeData(&quot;shiny&quot;) %&gt;% filter(exported == TRUE) %&gt;
 ggplot2_rc &lt;- makeData(&quot;ggplot2&quot;) %&gt;% filter(exported == TRUE) %&gt;% pull(name) %&gt;% as.character()
 plumber_rc &lt;- makeData(&quot;plumber&quot;) %&gt;% filter(exported == TRUE) %&gt;% pull(name) %&gt;% as.character()
 
+analyzeFilterPkg &lt;- function(pkg, dir, ver){
+  analyzePkg(pkg, dir, ver) %&gt;% 
+    filter(exported == TRUE, defunct == FALSE)
+}
+
 # Make sure these sources are pulled in for the most recent version from CRAN so we're analyzing the same packages.
 source(&quot;analyzePkg.R&quot;)
-shiny_rd &lt;- analyzePkg(&quot;shiny&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
+shiny_rd &lt;- analyzeFilterPkg(&quot;shiny&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
 <pre><code>##   shiny</code></pre>
-<pre class="r"><code>ggplot2_rd &lt;- analyzePkg(&quot;ggplot2&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
+<pre class="r"><code>ggplot2_rd &lt;- analyzeFilterPkg(&quot;ggplot2&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
 <pre><code>##   ggplot2</code></pre>
-<pre><code>## Warning in value[[3L]](cond): ggplot2::gg-add.Rd: Error in parse(fil = fil): /var/folders/kv/q_fc2g652zg1r99ggkbk_d1m0000gn/T//RtmpsvJzea/file419d48d89bbe.Rdmped:2:2: unexpected input
+<pre><code>## Warning in value[[3L]](cond): ggplot2::gg-add.Rd: Error in parse(fil = fil): /var/folders/kv/q_fc2g652zg1r99ggkbk_d1m0000gn/T//RtmpRmAPoS/file17fd650bbb7a5.Rdmped:2:2: unexpected input
 ## 1: 
 ## 2: +_
 ##     ^</code></pre>
-<pre class="r"><code>plumber_rd &lt;- analyzePkg(&quot;plumber&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
+<pre><code>## Warning: Unknown or uninitialised column: 'fun'.</code></pre>
+<pre class="r"><code>plumber_rd &lt;- analyzeFilterPkg(&quot;plumber&quot;, &quot;~/Downloads&quot;, &quot;3.5.2&quot;) %&gt;% group_by(fun) %&gt;% summarize() %&gt;% pull(&quot;fun&quot;)</code></pre>
 <pre><code>##   plumber</code></pre>
 <pre class="r"><code>summarizeDiff &lt;- function(rc, rd){
   onlyRC &lt;- setdiff(rc, rd)
@@ -429,13 +435,12 @@ shiny_rd &lt;- analyzePkg(&quot;shiny&quot;, &quot;~/Downloads&quot;, &quot;3.5.
 <div id="shiny" class="section level3">
 <h3>Shiny</h3>
 <pre class="r"><code>summarizeDiff(shiny_rc, shiny_rd)</code></pre>
-<pre><code>## 2  objects only in rc 
-## [1] &quot;conditionStackTrace&lt;-&quot; &quot;Progress&quot;             
-## 45  objects only in rd 
-## [1] &quot;&lt;-&quot;                 &quot;a&quot;                  &quot;applyInputHandlers&quot;
-## [4] &quot;as.tags&quot;            &quot;br&quot;                 &quot;code&quot;              
-## 99 % ( 224 / 226 ) of rc was also covered in rd
-## 17 % ( 45 / 269 ) of rd was not found in rc</code></pre>
+<pre><code>## 0  objects only in rc 
+## character(0)
+## 39  objects only in rd 
+## [1] &quot;a&quot;    &quot;br&quot;   &quot;code&quot; &quot;div&quot;  &quot;em&quot;   &quot;h1&quot;  
+## 100 % ( 226 / 226 ) of rc was also covered in rd
+## 15 % ( 39 / 265 ) of rd was not found in rc</code></pre>
 <p>Interestingly, the RD analysis is actually better on some functions here. <code>pre</code>, for example, is indeed exported from Shiny. It’s dynamically generated in the source. But it’s there.</p>
 <pre class="r"><code>shiny::pre(&quot;hi&quot;)</code></pre>
 <pre>hi</pre>
@@ -446,14 +451,12 @@ shiny_rd &lt;- analyzePkg(&quot;shiny&quot;, &quot;~/Downloads&quot;, &quot;3.5.
 <div id="ggplot2" class="section level3">
 <h3>ggplot2</h3>
 <pre class="r"><code>summarizeDiff(ggplot2_rc, ggplot2_rd)</code></pre>
-<pre><code>## 142  objects only in rc 
-## [1] &quot;%+%&quot;            &quot;AxisSecondary&quot;  &quot;Coord&quot;          &quot;coord_equal&quot;   
-## [5] &quot;CoordCartesian&quot; &quot;CoordFixed&quot;    
-## 20  objects only in rd 
-## [1] &quot;absoluteGrob&quot;   &quot;add_theme&quot;      &quot;as.list&quot;        &quot;diamonds&quot;      
-## [5] &quot;economics&quot;      &quot;economics_long&quot;
-## 68 % ( 300 / 442 ) of rc was also covered in rd
-## 6 % ( 20 / 320 ) of rd was not found in rc</code></pre>
+<pre><code>## 0  objects only in rc 
+## character(0)
+## 16  objects only in rd 
+## [1] &quot;.data&quot;   &quot;alpha&quot;   &quot;arrow&quot;   &quot;enexpr&quot;  &quot;enexprs&quot; &quot;enquo&quot;  
+## 100 % ( 442 / 442 ) of rc was also covered in rd
+## 3 % ( 16 / 458 ) of rd was not found in rc</code></pre>
 </div>
 <div id="plumber" class="section level3">
 <h3>Plumber</h3>

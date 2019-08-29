@@ -22,11 +22,16 @@ shiny_rc <- makeData("shiny") %>% filter(exported == TRUE) %>% pull(name) %>% as
 ggplot2_rc <- makeData("ggplot2") %>% filter(exported == TRUE) %>% pull(name) %>% as.character()
 plumber_rc <- makeData("plumber") %>% filter(exported == TRUE) %>% pull(name) %>% as.character()
 
+analyzeFilterPkg <- function(pkg, dir, ver){
+  analyzePkg(pkg, dir, ver) %>% 
+    filter(exported == TRUE, defunct == FALSE)
+}
+
 # Make sure these sources are pulled in for the most recent version from CRAN so we're analyzing the same packages.
 source("analyzePkg.R")
-shiny_rd <- analyzePkg("shiny", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
-ggplot2_rd <- analyzePkg("ggplot2", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
-plumber_rd <- analyzePkg("plumber", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+shiny_rd <- analyzeFilterPkg("shiny", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+ggplot2_rd <- analyzeFilterPkg("ggplot2", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
+plumber_rd <- analyzeFilterPkg("plumber", "~/Downloads", "3.5.2") %>% group_by(fun) %>% summarize() %>% pull("fun")
 
 summarizeDiff <- function(rc, rd){
   onlyRC <- setdiff(rc, rd)
