@@ -132,6 +132,9 @@ analyzePkg <- function(pkg, rlib, ver){
   }) %>% bind_rows()
 
   # Supplement with information about whether or not this object is exported
+  # TODO: trycatch this instead of permitting !mustExist. If no NAMESPACE file, I think that
+  # means everything is exported. Then we could remove the special case for pkg == base
+  # in rcheology_comparison.Rmd.
   ns <- base::parseNamespaceFile(pkg, rlib, mustExist = FALSE)
 
   addExported(allobjs, ns)

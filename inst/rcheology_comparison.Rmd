@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(dplyr)
 rd <- readRDS("parsed_rd.rds")
-r352_rd <- rd %>% filter(ver == "3.5.2", defunct==FALSE, exported==TRUE | pkg == "base") # base is always exported
+r352_rd <- rd %>% filter(ver == "3.5.2", defunct==FALSE, exported==TRUE | (pkg == "base")) # Base has some special treatment, but I don't think that literally everything is exported... Here we include all base functions. We should maybe prohibit aliases, though that doesn't improve performance by much -- it drives the FPR down to almost 0 but the TPR comes down substantially, too.
 head(r352_rd)
 funs_rd <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% pull(pf) %>% unique
 length(funs_rd)
@@ -25,15 +25,15 @@ funs_rc <- r352_rc %>% mutate(pf=paste(package, name, sep="::")) %>% pull(pf)
 length(funs_rc)
 
 # Functions that appear rd that are missing in rc
-setdiff(funs_rd, funs_rc)
+head(setdiff(funs_rd, funs_rc))
+tail(setdiff(funs_rd, funs_rc))
 ```
-
-It may be that by parsing the `NAMESPACE` file of a package we'd be able to catch that some of these aren't exported.
 
 ```{r}
 # Functions that are in rc that are missing from rd
 length(setdiff(funs_rc, funs_rd))
-head(setdiff(funs_rc, funs_rd), n=100)
+head(setdiff(funs_rc, funs_rd), n=10)
+tail(setdiff(funs_rc, funs_rd), n=10)
 ```
 
 These are functions that don't have usage examples associated with them. In some cases, there are listed aliases (e.g. `utils::de.ncols`) in the help file that point out their existence. But we have no idea what the signature of such functions is.
@@ -45,15 +45,42 @@ funs_rd_class <- r352_rd %>% mutate(pf=paste(pkg, fun, sep="::")) %>% filter(!is
 funs_rd_all <- c(funs_rd, funs_rd_class)
 length(funs_rd_all)
 length(setdiff(funs_rc, funs_rd_all))
-head(setdiff(funs_rc, funs_rd_all), n=100)
+head(setdiff(funs_rc, funs_rd_all), n=10)
 ```
 
 That accounted for `r length(setdiff(funs_rc, funs_rd)) - length(setdiff(funs_rc, funs_rd_all))` of the missing functions, but `r length(setdiff(funs_rc, funs_rd_all))` still remain.
 
 Of the `r length(funs_rc)` objects in rcheology, we can account for `r length(intersect(funs_rc, funs_rd_all))`, or `r round(length(intersect(funs_rc, funs_rd_all)) / length(funs_rc)*100)`%. And we still appear to include `r length(setdiff(funs_rd, funs_rc))` functions that are defunct or not exported in our dataset -- meaning that up to `r round(length(setdiff(funs_rd, funs_rc))/length(funs_rc)*100)`% of our dataset is bad data. It appears that some of these are legitimate-ish. i.e. `base::FALSE` is a real thing, although it's not an object in the traditional sense. Knowing that it exists and is available in a particular version may still be informative and legitimate.
 
+### By package
 
-Ideas to improve:
+```{r}
+library(tidyr)
+# False negatives
+rcs <- tibble(fun = funs_rc) %>% mutate(inrd = fun %in% funs_rd) %>% separate(fun, c("pkg", "fun"), sep="::")
+rcs %>% group_by(pkg) %>% summarize(n = n(), missing = n() - sum(inrd), inrd_pct = sum(inrd) / n() * 100)
+```
+
+104 of our false negatives come from the datasets package, which is probably fixible. Many others from methods which we could investigate. Maybe there's some S3 craziness there or something. stats4 is almost entirely empty, too.
+
+```{r}
+# False positives
+rds <- tibble(fun = funs_rd) %>% mutate(inrc = fun %in% funs_rc) %>% separate(fun, c("pkg", "fun"), sep="::")
+rds %>% group_by(pkg) %>% summarize(n = n(), missing = n() - sum(inrc), inrc_pct = sum(inrc) / n() * 100)
+```
+
+Almost all of the false positives are from the base package. It's probably worth investigating how exports there actually work. But that gives confidence that for normal packages, we should be pretty good.
+
+
+## Signatures
+
+How many functions do we actually have signatures for?
+
+```{r}
+rd %>% filter(ver == "3.5.2") %>% mutate(haveSignature = !is.na(paramName)) %>% group_by(ver, pkg, fun, haveSignature) %>% summarize() %>% group_by(ver, pkg) %>% summarize(withSig = sum(haveSignature), total = n(), pct = round(sum(haveSignature) / n() * 100)) %>% as.data.frame()
+```
+
+## Ideas to improve
 
  - Parse the package sources for evidence of an exported function referenced in `NAMESPACE` and deduce its signature. This won't always work -- some objects are dynamically generated and require running the code. But it might work for the obvious cases? Not clear if we would be able to avoid creating false positives, though.
 

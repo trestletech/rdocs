@@ -393,7 +393,7 @@ $(document).ready(function () {
 ## 
 ##     intersect, setdiff, setequal, union</code></pre>
 <pre class="r"><code>rd &lt;- readRDS(&quot;parsed_rd.rds&quot;)
-r352_rd &lt;- rd %&gt;% filter(ver == &quot;3.5.2&quot;, defunct==FALSE, exported==TRUE | pkg == &quot;base&quot;) # base is always exported
+r352_rd &lt;- rd %&gt;% filter(ver == &quot;3.5.2&quot;, defunct==FALSE, exported==TRUE | (pkg == &quot;base&quot;)) # Base has some special treatment, but I don't think that literally everything is exported... Here we include all base functions. We should maybe prohibit aliases, though that doesn't improve performance by much -- it drives the FPR down to almost 0 but the TPR comes down substantially, too.
 head(r352_rd)</code></pre>
 <pre><code>##     ver  pkg          file        fun class   paramName
 ## 1 3.5.2 base abbreviate.Rd abbreviate  &lt;NA&gt;   names.arg
@@ -425,308 +425,28 @@ head(r352_rc)</code></pre>
 length(funs_rc)</code></pre>
 <pre><code>## [1] 3363</code></pre>
 <pre class="r"><code># Functions that appear rd that are missing in rc
-setdiff(funs_rd, funs_rc)</code></pre>
-<pre><code>##   [1] &quot;base::fuzzy matching&quot;             
-##   [2] &quot;base::**&quot;                         
-##   [3] &quot;base::Arithmetic&quot;                 
-##   [4] &quot;base::as.Date.date&quot;               
-##   [5] &quot;base::as.Date.dates&quot;              
-##   [6] &quot;base::as.POSIXct.date&quot;            
-##   [7] &quot;base::as.POSIXct.dates&quot;           
-##   [8] &quot;base::as.POSIXlt.date&quot;            
-##   [9] &quot;base::as.POSIXlt.dates&quot;           
-##  [10] &quot;base::AsIs&quot;                       
-##  [11] &quot;base::-&gt;&quot;                         
-##  [12] &quot;base::-&gt;&gt;&quot;                        
-##  [13] &quot;base::assignOps&quot;                  
-##  [14] &quot;base::.conflicts.OK&quot;              
-##  [15] &quot;base::.Autoloaded&quot;                
-##  [16] &quot;base::Autoloads&quot;                  
-##  [17] &quot;base::base-deprecated&quot;            
-##  [18] &quot;base::windows&quot;                    
-##  [19] &quot;base::.fixupGFortranStdout&quot;       
-##  [20] &quot;base::.fixupGFortranStderr&quot;       
-##  [21] &quot;base::.Firstlib_as_onLoad&quot;        
-##  [22] &quot;base::.C_R_getbcprofcounts&quot;       
-##  [23] &quot;base::.C_R_startbcprof&quot;           
-##  [24] &quot;base::.C_R_stopbcprof&quot;            
-##  [25] &quot;base::base-package&quot;               
-##  [26] &quot;base::base&quot;                       
-##  [27] &quot;base::bessel&quot;                     
-##  [28] &quot;base::Bessel&quot;                     
-##  [29] &quot;base::bindenv&quot;                    
-##  [30] &quot;base::cdefault&quot;                   
-##  [31] &quot;base::c.default&quot;                  
-##  [32] &quot;base::colon&quot;                      
-##  [33] &quot;base::Comparison&quot;                 
-##  [34] &quot;base::collation&quot;                  
-##  [35] &quot;base::conditions&quot;                 
-##  [36] &quot;base::condition&quot;                  
-##  [37] &quot;base::connections&quot;                
-##  [38] &quot;base::connection&quot;                 
-##  [39] &quot;base::clipboard&quot;                  
-##  [40] &quot;base::Constants&quot;                  
-##  [41] &quot;base::Control&quot;                    
-##  [42] &quot;base::else&quot;                       
-##  [43] &quot;base::in&quot;                         
-##  [44] &quot;base::copyright&quot;                  
-##  [45] &quot;base::copyrights&quot;                 
-##  [46] &quot;base::Date&quot;                       
-##  [47] &quot;base::Dates&quot;                      
-##  [48] &quot;base::DateTimeClasses&quot;            
-##  [49] &quot;base::POSIXct&quot;                    
-##  [50] &quot;base::POSIXlt&quot;                    
-##  [51] &quot;base::POSIXt&quot;                     
-##  [52] &quot;base::Math.POSIXlt&quot;               
-##  [53] &quot;base::str.POSIXt&quot;                 
-##  [54] &quot;base::date-time&quot;                  
-##  [55] &quot;base::Defunct&quot;                    
-##  [56] &quot;base::defunct&quot;                    
-##  [57] &quot;base::promise&quot;                    
-##  [58] &quot;base::promises&quot;                   
-##  [59] &quot;base::Deprecated&quot;                 
-##  [60] &quot;base::deprecated&quot;                 
-##  [61] &quot;base::Math&quot;                       
-##  [62] &quot;base::time interval&quot;              
-##  [63] &quot;base::dots&quot;                       
-##  [64] &quot;base::...&quot;                        
-##  [65] &quot;base::..1&quot;                        
-##  [66] &quot;base::..2&quot;                        
-##  [67] &quot;base::droplevelsfactor&quot;           
-##  [68] &quot;base::droplevelsdata.frame&quot;       
-##  [69] &quot;base::R_MAX_NUM_DLLS&quot;             
-##  [70] &quot;base::enclosure&quot;                  
-##  [71] &quot;base::environment variables&quot;      
-##  [72] &quot;base::HOME&quot;                       
-##  [73] &quot;base::LANGUAGE&quot;                   
-##  [74] &quot;base::R_BATCH&quot;                    
-##  [75] &quot;base::R_BROWSER&quot;                  
-##  [76] &quot;base::R_COMPLETION&quot;               
-##  [77] &quot;base::R_DOC_DIR&quot;                  
-##  [78] &quot;base::R_GSCMD&quot;                    
-##  [79] &quot;base::R_HISTFILE&quot;                 
-##  [80] &quot;base::R_HISTSIZE&quot;                 
-##  [81] &quot;base::R_INCLUDE_DIR&quot;              
-##  [82] &quot;base::MAKEINDEX&quot;                  
-##  [83] &quot;base::R_PAPERSIZE&quot;                
-##  [84] &quot;base::R_PCRE_JIT_STACK_MAXSIZE&quot;   
-##  [85] &quot;base::R_PDFVIEWER&quot;                
-##  [86] &quot;base::R_PLATFORM&quot;                 
-##  [87] &quot;base::R_RD4PDF&quot;                   
-##  [88] &quot;base::R_SHARE_DIR&quot;                
-##  [89] &quot;base::R_TEXI2DVICMD&quot;              
-##  [90] &quot;base::R_UNZIPCMD&quot;                 
-##  [91] &quot;base::R_ZIPCMD&quot;                   
-##  [92] &quot;base::TMPDIR&quot;                     
-##  [93] &quot;base::Extract&quot;                    
-##  [94] &quot;base::Subscript&quot;                  
-##  [95] &quot;base::Sys.junction&quot;               
-##  [96] &quot;base::files&quot;                      
-##  [97] &quot;base::umask&quot;                      
-##  [98] &quot;base::Foreign&quot;                    
-##  [99] &quot;base::closure&quot;                    
-## [100] &quot;base::R_GCTORTURE&quot;                
-## [101] &quot;base::R_GCTORTURE_WAIT&quot;           
-## [102] &quot;base::R_GCTORTURE_INHIBIT_RELEASE&quot;
-## [103] &quot;base::DLLInfo&quot;                    
-## [104] &quot;base::DLLInfoList&quot;                
-## [105] &quot;base::NativeSymbolInfo&quot;           
-## [106] &quot;base::NativeSymbol&quot;               
-## [107] &quot;base::RegisteredNativeSymbol&quot;     
-## [108] &quot;base::S3groupGeneric&quot;             
-## [109] &quot;base::groupGeneric&quot;               
-## [110] &quot;base::.Group&quot;                     
-## [111] &quot;base::Ops&quot;                        
-## [112] &quot;base::Summary&quot;                    
-## [113] &quot;base::Complex&quot;                    
-## [114] &quot;base::group generic&quot;              
-## [115] &quot;base::hexmode&quot;                    
-## [116] &quot;base::R_ICU_LOCALE&quot;               
-## [117] &quot;base::InternalMethods&quot;            
-## [118] &quot;base::InternalGenerics&quot;           
-## [119] &quot;base::internal generic&quot;           
-## [120] &quot;base::Inf&quot;                        
-## [121] &quot;base::NaN&quot;                        
-## [122] &quot;base::finite&quot;                     
-## [123] &quot;base::infinite&quot;                   
-## [124] &quot;base::language object&quot;            
-## [125] &quot;base::language objects&quot;           
-## [126] &quot;base::S4&quot;                         
-## [127] &quot;base::R_LIBS&quot;                     
-## [128] &quot;base::R_LIBS_SITE&quot;                
-## [129] &quot;base::R_LIBS_USER&quot;                
-## [130] &quot;base::locales&quot;                    
-## [131] &quot;base::LC_ALL&quot;                     
-## [132] &quot;base::LC_COLLATE&quot;                 
-## [133] &quot;base::LC_CTYPE&quot;                   
-## [134] &quot;base::LC_MONETARY&quot;                
-## [135] &quot;base::LC_NUMERIC&quot;                 
-## [136] &quot;base::LC_TIME&quot;                    
-## [137] &quot;base::Logic&quot;                      
-## [138] &quot;base::TRUE&quot;                       
-## [139] &quot;base::FALSE&quot;                      
-## [140] &quot;base::long vector&quot;                
-## [141] &quot;base::long vectors&quot;               
-## [142] &quot;base::Long vectors&quot;               
-## [143] &quot;base::matmult&quot;                    
-## [144] &quot;base::Memory-limits&quot;              
-## [145] &quot;base::Memory&quot;                     
-## [146] &quot;base::NA&quot;                         
-## [147] &quot;base::NA_integer_&quot;                
-## [148] &quot;base::NA_real_&quot;                   
-## [149] &quot;base::NA_complex_&quot;                
-## [150] &quot;base::NA_character_&quot;              
-## [151] &quot;base::anyMissing&quot;                 
-## [152] &quot;base::name&quot;                       
-## [153] &quot;base::names.default&quot;              
-## [154] &quot;base::names&lt;-.default&quot;            
-## [155] &quot;base::NotYetImplemented&quot;          
-## [156] &quot;base::NotYetUsed&quot;                 
-## [157] &quot;base::.onLoad&quot;                    
-## [158] &quot;base::.onAttach&quot;                  
-## [159] &quot;base::.onUnload&quot;                  
-## [160] &quot;base::.onDetach&quot;                  
-## [161] &quot;base::.Last.lib&quot;                  
-## [162] &quot;base::NULL&quot;                       
-## [163] &quot;base::NumericConstants&quot;           
-## [164] &quot;base::1L&quot;                         
-## [165] &quot;base::0x1&quot;                        
-## [166] &quot;base::1i&quot;                         
-## [167] &quot;base::octmode&quot;                    
-## [168] &quot;base::option&quot;                     
-## [169] &quot;base::MC_CORES&quot;                   
-## [170] &quot;base::R_C_BOUNDS_CHECK&quot;           
-## [171] &quot;base::R_DEFAULT_DEVICE&quot;           
-## [172] &quot;base::R_KEEP_PKG_SOURCE&quot;          
-## [173] &quot;base::R_INTERACTIVE_DEVICE&quot;       
-## [174] &quot;base::Paren&quot;                      
-## [175] &quot;base::tilde expansion&quot;            
-## [176] &quot;base::primitive&quot;                  
-## [177] &quot;base::.Last&quot;                      
-## [178] &quot;base::.Last.sys&quot;                  
-## [179] &quot;base::Quotes&quot;                     
-## [180] &quot;base::backtick&quot;                   
-## [181] &quot;base::backquote&quot;                  
-## [182] &quot;base::'&quot;                          
-## [183] &quot;base::\&quot;&quot;                         
-## [184] &quot;base::`&quot;                          
-## [185] &quot;base::Random.user&quot;                
-## [186] &quot;base::Random&quot;                     
-## [187] &quot;base::RNG&quot;                        
-## [188] &quot;base::.Random.seed&quot;               
-## [189] &quot;base::Rdconv&quot;                     
-## [190] &quot;base::Rd2pdf&quot;                     
-## [191] &quot;base::RD2PDF_INPUTENC&quot;            
-## [192] &quot;base::finalizer&quot;                  
-## [193] &quot;base::regex&quot;                      
-## [194] &quot;base::regexp&quot;                     
-## [195] &quot;base::regular expression&quot;         
-## [196] &quot;base::Reserved&quot;                   
-## [197] &quot;base::reserved&quot;                   
-## [198] &quot;base::R_HOME&quot;                     
-## [199] &quot;base::intersection&quot;               
-## [200] &quot;base::Special&quot;                    
-## [201] &quot;base::srcfile-class&quot;              
-## [202] &quot;base::srcfilecopy-class&quot;          
-## [203] &quot;base::srcref-class&quot;               
-## [204] &quot;base::srcfilealias-class&quot;         
-## [205] &quot;base::Startup&quot;                    
-## [206] &quot;base::Rprofile&quot;                   
-## [207] &quot;base::.Rprofile&quot;                  
-## [208] &quot;base::Rprofile.site&quot;              
-## [209] &quot;base::Renviron&quot;                   
-## [210] &quot;base::Renviron.site&quot;              
-## [211] &quot;base::.Renviron&quot;                  
-## [212] &quot;base::.First&quot;                     
-## [213] &quot;base::R_DEFAULT_PACKAGES&quot;         
-## [214] &quot;base::R_ENVIRON&quot;                  
-## [215] &quot;base::R_ENVIRON_USER&quot;             
-## [216] &quot;base::R_PROFILE&quot;                  
-## [217] &quot;base::R_PROFILE_USER&quot;             
-## [218] &quot;base::Syntax&quot;                     
-## [219] &quot;base::localeconv&quot;                 
-## [220] &quot;base::tilde&quot;                      
-## [221] &quot;base::timezone&quot;                   
-## [222] &quot;base::timezones&quot;                  
-## [223] &quot;base::time zone&quot;                  
-## [224] &quot;base::time zones&quot;                 
-## [225] &quot;base::TZ&quot;                         
-## [226] &quot;base::TZDIR&quot;                      
-## [227] &quot;base::.sys.timezone&quot;              
-## [228] &quot;base::.Traceback&quot;                 
-## [229] &quot;base::Trig&quot;                       
-## [230] &quot;base::arccos&quot;                     
-## [231] &quot;base::arcsin&quot;                     
-## [232] &quot;base::arctan&quot;                     
-## [233] &quot;base::type&quot;                       
-## [234] &quot;base::S3Methods&quot;                  
-## [235] &quot;base::.Method&quot;                    
-## [236] &quot;base::.Generic&quot;                   
-## [237] &quot;base::.Class&quot;                     
-## [238] &quot;base::Unicode&quot;                    
-## [239] &quot;base::code point&quot;                 
-## [240] &quot;base::atomic&quot;                     
-## [241] &quot;base::summarywarnings&quot;            
-## [242] &quot;base::printwarnings&quot;              
-## [243] &quot;base::printsummary.warnings&quot;      
-## [244] &quot;base::last.warning&quot;               
-## [245] &quot;base::withinlist&quot;                 
-## [246] &quot;tcltk::tcltk&quot;</code></pre>
-<p>It may be that by parsing the <code>NAMESPACE</code> file of a package we’d be able to catch that some of these aren’t exported.</p>
+head(setdiff(funs_rd, funs_rc))</code></pre>
+<pre><code>## [1] &quot;base::fuzzy matching&quot;  &quot;base::**&quot;              &quot;base::Arithmetic&quot;     
+## [4] &quot;base::as.Date.date&quot;    &quot;base::as.Date.dates&quot;   &quot;base::as.POSIXct.date&quot;</code></pre>
+<pre class="r"><code>tail(setdiff(funs_rd, funs_rc))</code></pre>
+<pre><code>## [1] &quot;base::summarywarnings&quot;       &quot;base::printwarnings&quot;        
+## [3] &quot;base::printsummary.warnings&quot; &quot;base::last.warning&quot;         
+## [5] &quot;base::withinlist&quot;            &quot;tcltk::tcltk&quot;</code></pre>
 <pre class="r"><code># Functions that are in rc that are missing from rd
 length(setdiff(funs_rc, funs_rd))</code></pre>
 <pre><code>## [1] 358</code></pre>
-<pre class="r"><code>head(setdiff(funs_rc, funs_rd), n=100)</code></pre>
-<pre><code>##   [1] &quot;base::.find.package&quot;          &quot;base::.path.package&quot;         
-##   [3] &quot;base::.readRDS&quot;               &quot;base::.saveRDS&quot;              
-##   [5] &quot;base::mem.limits&quot;             &quot;datasets::ability.cov&quot;       
-##   [7] &quot;datasets::airmiles&quot;           &quot;datasets::AirPassengers&quot;     
-##   [9] &quot;datasets::airquality&quot;         &quot;datasets::anscombe&quot;          
-##  [11] &quot;datasets::attenu&quot;             &quot;datasets::attitude&quot;          
-##  [13] &quot;datasets::austres&quot;            &quot;datasets::beaver1&quot;           
-##  [15] &quot;datasets::beaver2&quot;            &quot;datasets::BJsales&quot;           
-##  [17] &quot;datasets::BJsales.lead&quot;       &quot;datasets::BOD&quot;               
-##  [19] &quot;datasets::cars&quot;               &quot;datasets::ChickWeight&quot;       
-##  [21] &quot;datasets::chickwts&quot;           &quot;datasets::co2&quot;               
-##  [23] &quot;datasets::CO2&quot;                &quot;datasets::crimtab&quot;           
-##  [25] &quot;datasets::discoveries&quot;        &quot;datasets::DNase&quot;             
-##  [27] &quot;datasets::esoph&quot;              &quot;datasets::euro&quot;              
-##  [29] &quot;datasets::euro.cross&quot;         &quot;datasets::eurodist&quot;          
-##  [31] &quot;datasets::EuStockMarkets&quot;     &quot;datasets::faithful&quot;          
-##  [33] &quot;datasets::fdeaths&quot;            &quot;datasets::Formaldehyde&quot;      
-##  [35] &quot;datasets::freeny&quot;             &quot;datasets::freeny.x&quot;          
-##  [37] &quot;datasets::freeny.y&quot;           &quot;datasets::HairEyeColor&quot;      
-##  [39] &quot;datasets::Harman23.cor&quot;       &quot;datasets::Harman74.cor&quot;      
-##  [41] &quot;datasets::Indometh&quot;           &quot;datasets::infert&quot;            
-##  [43] &quot;datasets::InsectSprays&quot;       &quot;datasets::iris&quot;              
-##  [45] &quot;datasets::iris3&quot;              &quot;datasets::islands&quot;           
-##  [47] &quot;datasets::JohnsonJohnson&quot;     &quot;datasets::LakeHuron&quot;         
-##  [49] &quot;datasets::ldeaths&quot;            &quot;datasets::lh&quot;                
-##  [51] &quot;datasets::LifeCycleSavings&quot;   &quot;datasets::Loblolly&quot;          
-##  [53] &quot;datasets::longley&quot;            &quot;datasets::lynx&quot;              
-##  [55] &quot;datasets::mdeaths&quot;            &quot;datasets::morley&quot;            
-##  [57] &quot;datasets::mtcars&quot;             &quot;datasets::nhtemp&quot;            
-##  [59] &quot;datasets::Nile&quot;               &quot;datasets::nottem&quot;            
-##  [61] &quot;datasets::npk&quot;                &quot;datasets::occupationalStatus&quot;
-##  [63] &quot;datasets::Orange&quot;             &quot;datasets::OrchardSprays&quot;     
-##  [65] &quot;datasets::PlantGrowth&quot;        &quot;datasets::precip&quot;            
-##  [67] &quot;datasets::presidents&quot;         &quot;datasets::pressure&quot;          
-##  [69] &quot;datasets::Puromycin&quot;          &quot;datasets::quakes&quot;            
-##  [71] &quot;datasets::randu&quot;              &quot;datasets::rivers&quot;            
-##  [73] &quot;datasets::rock&quot;               &quot;datasets::Seatbelts&quot;         
-##  [75] &quot;datasets::sleep&quot;              &quot;datasets::stack.loss&quot;        
-##  [77] &quot;datasets::stack.x&quot;            &quot;datasets::stackloss&quot;         
-##  [79] &quot;datasets::state.abb&quot;          &quot;datasets::state.area&quot;        
-##  [81] &quot;datasets::state.center&quot;       &quot;datasets::state.division&quot;    
-##  [83] &quot;datasets::state.name&quot;         &quot;datasets::state.region&quot;      
-##  [85] &quot;datasets::state.x77&quot;          &quot;datasets::sunspot.month&quot;     
-##  [87] &quot;datasets::sunspot.year&quot;       &quot;datasets::sunspots&quot;          
-##  [89] &quot;datasets::swiss&quot;              &quot;datasets::Theoph&quot;            
-##  [91] &quot;datasets::Titanic&quot;            &quot;datasets::ToothGrowth&quot;       
-##  [93] &quot;datasets::treering&quot;           &quot;datasets::trees&quot;             
-##  [95] &quot;datasets::UCBAdmissions&quot;      &quot;datasets::UKDriverDeaths&quot;    
-##  [97] &quot;datasets::UKgas&quot;              &quot;datasets::USAccDeaths&quot;       
-##  [99] &quot;datasets::USArrests&quot;          &quot;datasets::UScitiesD&quot;</code></pre>
+<pre class="r"><code>head(setdiff(funs_rc, funs_rd), n=10)</code></pre>
+<pre><code>##  [1] &quot;base::.find.package&quot;     &quot;base::.path.package&quot;    
+##  [3] &quot;base::.readRDS&quot;          &quot;base::.saveRDS&quot;         
+##  [5] &quot;base::mem.limits&quot;        &quot;datasets::ability.cov&quot;  
+##  [7] &quot;datasets::airmiles&quot;      &quot;datasets::AirPassengers&quot;
+##  [9] &quot;datasets::airquality&quot;    &quot;datasets::anscombe&quot;</code></pre>
+<pre class="r"><code>tail(setdiff(funs_rc, funs_rd), n=10)</code></pre>
+<pre><code>##  [1] &quot;tools::checkNEWS&quot;         &quot;tools::readNEWS&quot;         
+##  [3] &quot;utils::.RtangleCodeLabel&quot; &quot;utils::as.person&quot;        
+##  [5] &quot;utils::CRAN.packages&quot;     &quot;utils::edit&quot;             
+##  [7] &quot;utils::memory.limit&quot;      &quot;utils::memory.size&quot;      
+##  [9] &quot;utils::nsl&quot;               &quot;utils::upgrade&quot;</code></pre>
 <p>These are functions that don’t have usage examples associated with them. In some cases, there are listed aliases (e.g. <code>utils::de.ncols</code>) in the help file that point out their existence. But we have no idea what the signature of such functions is.</p>
 <p>In some cases, these functions that are only in rc do actually exist in rd they just have a class. We can append the class to see if that helps.</p>
 <pre class="r"><code>funs_rd_class &lt;- r352_rd %&gt;% mutate(pf=paste(pkg, fun, sep=&quot;::&quot;)) %&gt;% filter(!is.na(class)) %&gt;% mutate(pfc = paste(pf, class, sep=&quot;.&quot;)) %&gt;% pull(pfc) %&gt;% unique
@@ -735,60 +455,85 @@ length(funs_rd_all)</code></pre>
 <pre><code>## [1] 3372</code></pre>
 <pre class="r"><code>length(setdiff(funs_rc, funs_rd_all))</code></pre>
 <pre><code>## [1] 358</code></pre>
-<pre class="r"><code>head(setdiff(funs_rc, funs_rd_all), n=100)</code></pre>
-<pre><code>##   [1] &quot;base::.find.package&quot;          &quot;base::.path.package&quot;         
-##   [3] &quot;base::.readRDS&quot;               &quot;base::.saveRDS&quot;              
-##   [5] &quot;base::mem.limits&quot;             &quot;datasets::ability.cov&quot;       
-##   [7] &quot;datasets::airmiles&quot;           &quot;datasets::AirPassengers&quot;     
-##   [9] &quot;datasets::airquality&quot;         &quot;datasets::anscombe&quot;          
-##  [11] &quot;datasets::attenu&quot;             &quot;datasets::attitude&quot;          
-##  [13] &quot;datasets::austres&quot;            &quot;datasets::beaver1&quot;           
-##  [15] &quot;datasets::beaver2&quot;            &quot;datasets::BJsales&quot;           
-##  [17] &quot;datasets::BJsales.lead&quot;       &quot;datasets::BOD&quot;               
-##  [19] &quot;datasets::cars&quot;               &quot;datasets::ChickWeight&quot;       
-##  [21] &quot;datasets::chickwts&quot;           &quot;datasets::co2&quot;               
-##  [23] &quot;datasets::CO2&quot;                &quot;datasets::crimtab&quot;           
-##  [25] &quot;datasets::discoveries&quot;        &quot;datasets::DNase&quot;             
-##  [27] &quot;datasets::esoph&quot;              &quot;datasets::euro&quot;              
-##  [29] &quot;datasets::euro.cross&quot;         &quot;datasets::eurodist&quot;          
-##  [31] &quot;datasets::EuStockMarkets&quot;     &quot;datasets::faithful&quot;          
-##  [33] &quot;datasets::fdeaths&quot;            &quot;datasets::Formaldehyde&quot;      
-##  [35] &quot;datasets::freeny&quot;             &quot;datasets::freeny.x&quot;          
-##  [37] &quot;datasets::freeny.y&quot;           &quot;datasets::HairEyeColor&quot;      
-##  [39] &quot;datasets::Harman23.cor&quot;       &quot;datasets::Harman74.cor&quot;      
-##  [41] &quot;datasets::Indometh&quot;           &quot;datasets::infert&quot;            
-##  [43] &quot;datasets::InsectSprays&quot;       &quot;datasets::iris&quot;              
-##  [45] &quot;datasets::iris3&quot;              &quot;datasets::islands&quot;           
-##  [47] &quot;datasets::JohnsonJohnson&quot;     &quot;datasets::LakeHuron&quot;         
-##  [49] &quot;datasets::ldeaths&quot;            &quot;datasets::lh&quot;                
-##  [51] &quot;datasets::LifeCycleSavings&quot;   &quot;datasets::Loblolly&quot;          
-##  [53] &quot;datasets::longley&quot;            &quot;datasets::lynx&quot;              
-##  [55] &quot;datasets::mdeaths&quot;            &quot;datasets::morley&quot;            
-##  [57] &quot;datasets::mtcars&quot;             &quot;datasets::nhtemp&quot;            
-##  [59] &quot;datasets::Nile&quot;               &quot;datasets::nottem&quot;            
-##  [61] &quot;datasets::npk&quot;                &quot;datasets::occupationalStatus&quot;
-##  [63] &quot;datasets::Orange&quot;             &quot;datasets::OrchardSprays&quot;     
-##  [65] &quot;datasets::PlantGrowth&quot;        &quot;datasets::precip&quot;            
-##  [67] &quot;datasets::presidents&quot;         &quot;datasets::pressure&quot;          
-##  [69] &quot;datasets::Puromycin&quot;          &quot;datasets::quakes&quot;            
-##  [71] &quot;datasets::randu&quot;              &quot;datasets::rivers&quot;            
-##  [73] &quot;datasets::rock&quot;               &quot;datasets::Seatbelts&quot;         
-##  [75] &quot;datasets::sleep&quot;              &quot;datasets::stack.loss&quot;        
-##  [77] &quot;datasets::stack.x&quot;            &quot;datasets::stackloss&quot;         
-##  [79] &quot;datasets::state.abb&quot;          &quot;datasets::state.area&quot;        
-##  [81] &quot;datasets::state.center&quot;       &quot;datasets::state.division&quot;    
-##  [83] &quot;datasets::state.name&quot;         &quot;datasets::state.region&quot;      
-##  [85] &quot;datasets::state.x77&quot;          &quot;datasets::sunspot.month&quot;     
-##  [87] &quot;datasets::sunspot.year&quot;       &quot;datasets::sunspots&quot;          
-##  [89] &quot;datasets::swiss&quot;              &quot;datasets::Theoph&quot;            
-##  [91] &quot;datasets::Titanic&quot;            &quot;datasets::ToothGrowth&quot;       
-##  [93] &quot;datasets::treering&quot;           &quot;datasets::trees&quot;             
-##  [95] &quot;datasets::UCBAdmissions&quot;      &quot;datasets::UKDriverDeaths&quot;    
-##  [97] &quot;datasets::UKgas&quot;              &quot;datasets::USAccDeaths&quot;       
-##  [99] &quot;datasets::USArrests&quot;          &quot;datasets::UScitiesD&quot;</code></pre>
+<pre class="r"><code>head(setdiff(funs_rc, funs_rd_all), n=10)</code></pre>
+<pre><code>##  [1] &quot;base::.find.package&quot;     &quot;base::.path.package&quot;    
+##  [3] &quot;base::.readRDS&quot;          &quot;base::.saveRDS&quot;         
+##  [5] &quot;base::mem.limits&quot;        &quot;datasets::ability.cov&quot;  
+##  [7] &quot;datasets::airmiles&quot;      &quot;datasets::AirPassengers&quot;
+##  [9] &quot;datasets::airquality&quot;    &quot;datasets::anscombe&quot;</code></pre>
 <p>That accounted for 0 of the missing functions, but 358 still remain.</p>
 <p>Of the 3363 objects in rcheology, we can account for 3005, or 89%. And we still appear to include 246 functions that are defunct or not exported in our dataset – meaning that up to 7% of our dataset is bad data. It appears that some of these are legitimate-ish. i.e. <code>base::FALSE</code> is a real thing, although it’s not an object in the traditional sense. Knowing that it exists and is available in a particular version may still be informative and legitimate.</p>
-<p>Ideas to improve:</p>
+<div id="by-package" class="section level3">
+<h3>By package</h3>
+<pre class="r"><code>library(tidyr)
+# False negatives
+rcs &lt;- tibble(fun = funs_rc) %&gt;% mutate(inrd = fun %in% funs_rd) %&gt;% separate(fun, c(&quot;pkg&quot;, &quot;fun&quot;), sep=&quot;::&quot;)</code></pre>
+<pre><code>## Warning: Expected 2 pieces. Additional pieces discarded in 2 rows [5, 6].</code></pre>
+<pre class="r"><code>rcs %&gt;% group_by(pkg) %&gt;% summarize(n = n(), missing = n() - sum(inrd), inrd_pct = sum(inrd) / n() * 100)</code></pre>
+<pre><code>## # A tibble: 14 x 4
+##    pkg           n missing inrd_pct
+##    &lt;chr&gt;     &lt;int&gt;   &lt;int&gt;    &lt;dbl&gt;
+##  1 base       1338       5    99.6 
+##  2 compiler      9       0   100   
+##  3 datasets    104     104     0   
+##  4 graphics     88       0   100   
+##  5 grDevices   108      15    86.1 
+##  6 grid        199      14    93.0 
+##  7 methods     385     173    55.1 
+##  8 parallel     33       7    78.8 
+##  9 splines      13       0   100   
+## 10 stats       454       2    99.6 
+## 11 stats4       28      27     3.57
+## 12 tcltk       269       1    99.6 
+## 13 tools       117       2    98.3 
+## 14 utils       218       8    96.3</code></pre>
+<p>104 of our false negatives come from the datasets package, which is probably fixible. Many others from methods which we could investigate. Maybe there’s some S3 craziness there or something. stats4 is almost entirely empty, too.</p>
+<pre class="r"><code># False positives
+rds &lt;- tibble(fun = funs_rd) %&gt;% mutate(inrc = fun %in% funs_rc) %&gt;% separate(fun, c(&quot;pkg&quot;, &quot;fun&quot;), sep=&quot;::&quot;)</code></pre>
+<pre><code>## Warning: Expected 2 pieces. Additional pieces discarded in 2 rows [985,
+## 986].</code></pre>
+<pre class="r"><code>rds %&gt;% group_by(pkg) %&gt;% summarize(n = n(), missing = n() - sum(inrc), inrc_pct = sum(inrc) / n() * 100)</code></pre>
+<pre><code>## # A tibble: 13 x 4
+##    pkg           n missing inrc_pct
+##    &lt;chr&gt;     &lt;int&gt;   &lt;int&gt;    &lt;dbl&gt;
+##  1 base       1578     245     84.5
+##  2 compiler      9       0    100  
+##  3 graphics     88       0    100  
+##  4 grDevices    93       0    100  
+##  5 grid        185       0    100  
+##  6 methods     212       0    100  
+##  7 parallel     26       0    100  
+##  8 splines      13       0    100  
+##  9 stats       452       0    100  
+## 10 stats4        1       0    100  
+## 11 tcltk       269       1     99.6
+## 12 tools       115       0    100  
+## 13 utils       210       0    100</code></pre>
+<p>Almost all of the false positives are from the base package. It’s probably worth investigating how exports there actually work. But that gives confidence that for normal packages, we should be pretty good.</p>
+</div>
+</div>
+<div id="signatures" class="section level2">
+<h2>Signatures</h2>
+<p>How many functions do we actually have signatures for?</p>
+<pre class="r"><code>rd %&gt;% filter(ver == &quot;3.5.2&quot;) %&gt;% mutate(haveSignature = !is.na(paramName)) %&gt;% group_by(ver, pkg, fun, haveSignature) %&gt;% summarize() %&gt;% group_by(ver, pkg) %&gt;% summarize(withSig = sum(haveSignature), total = n(), pct = round(sum(haveSignature) / n() * 100)) %&gt;% as.data.frame()</code></pre>
+<pre><code>##      ver       pkg withSig total pct
+## 1  3.5.2      base     865  1640  53
+## 2  3.5.2  compiler       9     9 100
+## 3  3.5.2  datasets       0   109   0
+## 4  3.5.2  graphics      76   129  59
+## 5  3.5.2 grDevices      87   135  64
+## 6  3.5.2      grid     183   213  86
+## 7  3.5.2   methods     201   527  38
+## 8  3.5.2  parallel      24    29  83
+## 9  3.5.2   splines      14    23  61
+## 10 3.5.2     stats     455   790  58
+## 11 3.5.2    stats4       3    38   8
+## 12 3.5.2     tcltk     249   306  81
+## 13 3.5.2     tools     106   153  69
+## 14 3.5.2     utils     220   337  65</code></pre>
+</div>
+<div id="ideas-to-improve" class="section level2">
+<h2>Ideas to improve</h2>
 <ul>
 <li>Parse the package sources for evidence of an exported function referenced in <code>NAMESPACE</code> and deduce its signature. This won’t always work – some objects are dynamically generated and require running the code. But it might work for the obvious cases? Not clear if we would be able to avoid creating false positives, though.</li>
 </ul>
